@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Indoor Navigation Admin Panel</title>
+
+    <!-- QR CODE LIBRARY -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0A1628;
+            color: #ECEFF1;
+            min-height: 100vh;
+        }
+
+        header {
+            background: #102040;
+            border-bottom: 2px solid #00BCD4;
+            padding: 18px 28px;
+        }
+
+        header h1 {
+            color: #00BCD4;
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        header p {
+            color: #546E7A;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 22px;
+            padding: 22px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: #102040;
+            border: 1px solid #1E3A5F;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }
+
+        .card h2 {
+            color: #00BCD4;
+            font-size: 14px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #1E3A5F;
+        }
+
+        .field {
+            margin-bottom: 12px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 11px;
+            color: #90A4AE;
+            margin-bottom: 4px;
+            letter-spacing: .5px;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            background: #0D2137;
+            border: 1px solid #1E3A5F;
+            border-radius: 8px;
+            padding: 9px 11px;
+            color: #ECEFF1;
+            font-size: 13px;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            border-color: #00BCD4;
+        }
+
+        .field textarea {
+            resize: vertical;
+            min-height: 65px;
+        }
+
+        .field select option {
+            background: #0D2137;
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 11px;
+            background: #00BCD4;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            background: #00ACC1;
+        }
+
+        .status {
+            margin-top: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+        }
+
+        .status.ok {
+            background: #1B5E20;
+            color: #A5D6A7;
+            display: block;
+        }
+
+        .status.err {
+            background: #B71C1C;
+            color: #FFCDD2;
+            display: block;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        thead th {
+            background: #1565C0;
+            color: #fff;
+            padding: 9px 11px;
+            text-align: left;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #0D2137;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: #102040;
+        }
+
+        tbody td {
+            padding: 8px 11px;
+            border-bottom: 1px solid #1E3A5F;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+        }
+
+        .badge.lab {
+            background: #1565C0;
+            color: #fff;
+        }
+
+        .badge.classroom {
+            background: #2E7D32;
+            color: #fff;
+        }
+
+        .badge.corridor {
+            background: #E65100;
+            color: #fff;
+        }
+
+        .badge.stairs {
+            background: #6A1B9A;
+            color: #fff;
+        }
+
+        .badge.facility {
+            background: #00838F;
+            color: #fff;
+        }
+
+        .badge.office {
+            background: #4E342E;
+            color: #fff;
+        }
+
+        /* QR VIEW BUTTON */
+
+        .qr-view {
+            background: transparent;
+            border: 1px solid #00BCD4;
+            color: #00BCD4;
+            padding: 4px 9px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+
+        .qr-view:hover {
+            background: #00BCD4;
+            color: #000;
+        }
+
+        /* DELETE BUTTON */
+
+        .del {
+            background: transparent;
+            border: 1px solid #C62828;
+            color: #EF9A9A;
+            padding: 4px 9px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .del:hover {
+            background: #C62828;
+            color: #fff;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 14px;
+        }
+
+        .tab {
+            padding: 7px 16px;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid #1E3A5F;
+            border-bottom: none;
+            background: #0D2137;
+            color: #546E7A;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .tab.active {
+            background: #102040;
+            color: #00BCD4;
+            border-color: #00BCD4;
+        }
+
+        /* =========================================================
+   QR MODAL
+   ========================================================= */
+
+        .qr-modal {
+            display: none;
+
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 9999;
+
+            background: rgba(0, 0, 0, 0.75);
+
+            align-items: center;
+
+            justify-content: center;
+        }
+
+        .qr-modal.show {
+            display: flex;
+        }
+
+        .qr-box {
+            position: relative;
+
+            width: 380px;
+
+            max-width: 90vw;
+
+            background: white;
+
+            color: #111;
+
+            border-radius: 15px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .qr-box h2 {
+            color: #111;
+
+            margin-bottom: 5px;
+
+            font-size: 22px;
+        }
+
+        #qrRoomCode {
+            color: #555;
+
+            font-family: monospace;
+
+            font-size: 14px;
+
+            margin-bottom: 20px;
+        }
+
+        #qrcode {
+            width: 300px;
+
+            min-height: 300px;
+
+            margin: 0 auto 20px auto;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            background: white;
+        }
+
+        #qrcode img,
+        #qrcode canvas {
+            display: block;
+
+            margin: auto;
+        }
+
+        .qr-close {
+            position: absolute;
+
+            top: 10px;
+
+            right: 15px;
+
+            border: none;
+
+            background: transparent;
+
+            color: #333;
+
+            font-size: 30px;
+
+            cursor: pointer;
+
+            line-height: 1;
+        }
+
+        .qr-close:hover {
+            color: #C62828;
+        }
+
+        .qr-print {
+            background: #00BCD4;
+
+            color: #000;
+
+            border: none;
+
+            border-radius: 7px;
+
+            padding: 11px 25px;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .qr-print:hover {
+            background: #00ACC1;
+        }
+
+        .tbc {
+            display: none;
+        }
+
+        .tbc.active {
+            display: block;
+        }
+
+        .hint {
+            color: #546E7A;
+            font-size: 12px;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>
+            &#x1F4CD; Indoor Navigation — Admin Panel
+        </h1>
+
+        <p>
+            Add rooms and paths without editing code.
+            Changes take effect immediately.
+        </p>
+
+    </header>
+
+
+    <div class="layout">
+
+        <!-- =========================================================
+         LEFT SIDE
+         ========================================================= -->
+
+        <div>
+
+            <!-- =====================================================
+             ADD ROOM
+             ===================================================== -->
+
+            <div class="card">
+
+                <h2>
+                    &#x2795; Add New Room
+                </h2>
+
+                <div class="field">
+
+                    <label>
+                        ROOM ID (no spaces) *
+                    </label>
+
+                    <input id="rId" placeholder="e.g. Lab01 or Class101">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        ROOM NAME *
+                    </label>
+
+                    <input id="rName" placeholder="e.g. Computer Lab 1">
+
+                </div>
+
+
+                <div class="row">
+
+                    <div class="field">
+
+                        <label>
+                            FLOOR *
+                        </label>
+
+                        <input id="rFloor" type="number" min="1" value="1">
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label>
+                            TYPE *
+                        </label>
+
+                        <select id="rType">
+
+                            <option value="classroom">
+                                Classroom
+                            </option>
+
+                            <option value="lab">
+                                Lab
+                            </option>
+
+                            <option value="corridor">
+                                Corridor
+                            </option>
+
+                            <option value="stairs">
+                                Stairs
+                            </option>
+
+                            <option value="facility">
+                                Facility
+                            </option>
+
+                            <option value="office">
+                                Office
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <!-- NO MANUAL QR FIELD -->
+
+
+                <div class="field">
+
+                    <label>
+                        DESCRIPTION (optional)
+                    </label>
+
+                    <input id="rDesc" placeholder="Short note about the room">
+
+                </div>
+
+
+                <div class="row">
+
+                    <div class="field">
+
+                        <label>
+                            X POS (metres)
+                        </label>
+
+                        <input id="rX" type="number" value="0" step="0.5">
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label>
+                            Y POS (metres)
+                        </label>
+
+                        <input id="rY" type="number" value="0" step="0.5">
+
+                    </div>
+
+                </div>
+
+
+                <button class="btn" onclick="addRoom()">
+                    SAVE ROOM
+                </button>
+
+
+                <div class="status" id="roomMsg"></div>
+
+            </div>
+
+
+            <!-- =====================================================
+             ADD PATH
+             ===================================================== -->
+
+            <div class="card">
+
+                <h2>
+                    &#x1F517; Add Path Connection
+                </h2>
+
+                <p class="hint">
+                    Always add BOTH directions
+                    (A→B and B→A) — walking works both ways.
+                </p>
+
+                <div class="row">
+
+                    <div class="field">
+
+                        <label>
+                            FROM ROOM *
+                        </label>
+
+                        <select id="pFrom">
+                            <option value="">
+                                -- loading --
+                            </option>
+                        </select>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label>
+                            TO ROOM *
+                        </label>
+
+                        <select id="pTo">
+                            <option value="">
+                                -- loading --
+                            </option>
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        DISTANCE (metres) *
+                    </label>
+
+                    <input id="pDist" type="number" min="0.1" step="0.5" placeholder="e.g. 15">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        DIRECTION
+                        (spoken by voice guide) *
+                    </label>
+
+                    <textarea id="pDir"
+                        placeholder="e.g. Turn left. Computer Lab 1 is the first door on your left."></textarea>
+
+                </div>
+
+
+                <button class="btn" onclick="addPath()">
+                    SAVE PATH
+                </button>
+
+
+                <div class="status" id="pathMsg"></div>
+
+            </div>
+
+
+            <!-- =====================================================
+             ADD IMAGE
+             ===================================================== -->
+
+            <div class="card">
+
+                <h2>
+                    &#x1F5BC; Add Pathway Image
+                </h2>
+
+                <p class="hint">
+                    First copy the image to
+                    backend/pathway-images/.
+                    Then enter the filename here.
+                </p>
+
+
+                <div class="field">
+
+                    <label>
+                        ROOM *
+                    </label>
+
+                    <select id="iNode">
+
+                        <option value="">
+                            -- loading --
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        IMAGE FILENAME *
+                    </label>
+
+                    <input id="iFile" placeholder="e.g. lab01.jpg">
+
+                </div>
+
+
+                <div class="field">
+
+                    <label>
+                        CAPTION
+                    </label>
+
+                    <input id="iCap" placeholder="e.g. Computer Lab 1">
+
+                </div>
+
+
+                <button class="btn" onclick="addImage()">
+                    SAVE IMAGE
+                </button>
+
+
+                <div class="status" id="imgMsg"></div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =========================================================
+         RIGHT SIDE
+         ========================================================= -->
+
+        <div>
+
+            <div class="card">
+
+                <div class="tabs">
+
+                    <div class="tab active" onclick='showTab(event,"rooms")'>
+                        Rooms
+                    </div>
+
+                    <div class="tab" onclick='showTab(event,"paths")'>
+                        Paths
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                 ROOMS TABLE
+                 ================================================= -->
+
+                <div id="tRooms" class="tbc active">
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        margin-bottom:10px;
+                    ">
+
+                        <span style="
+                            color:#546E7A;
+                            font-size:12px;
+                        " id="rCount">
+                            Loading...
+                        </span>
+
+
+                        <button class="btn" style="
+                            width:auto;
+                            padding:6px 14px;
+                            font-size:11px;
+                        " onclick="loadRooms()">
+                            Refresh
+                        </button>
+
+                    </div>
+
+
+                    <div class="table-wrap">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Fl</th>
+                                    <th>Type</th>
+                                    <th>QR Code</th>
+                                    <th>X</th>
+                                    <th>Y</th>
+                                    <th>Actions</th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody id="rBody">
+
+                                <tr>
+
+                                    <td colspan="8" style="
+                                        text-align:center;
+                                        padding:18px;
+                                        color:#546E7A;
+                                    ">
+                                        Loading...
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                 PATHS TABLE
+                 ================================================= -->
+
+                <div id="tPaths" class="tbc">
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        margin-bottom:10px;
+                    ">
+
+                        <span style="
+                            color:#546E7A;
+                            font-size:12px;
+                        " id="pCount">
+                            Loading...
+                        </span>
+
+
+                        <button class="btn" style="
+                            width:auto;
+                            padding:6px 14px;
+                            font-size:11px;
+                        " onclick="loadPaths()">
+                            Refresh
+                        </button>
+
+                    </div>
+
+
+                    <div class="table-wrap">
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>From</th>
+                                    <th>To</th>
+                                    <th>Dist</th>
+                                    <th>Direction</th>
+
+                                </tr>
+
+                            </thead>
+
+
+                            <tbody id="pBody">
+
+                                <tr>
+
+                                    <td colspan="4" style="
+                                        text-align:center;
+                                        padding:18px;
+                                        color:#546E7A;
+                                    ">
+                                        Loading...
+
+                                    </td>
+
+                                </tr>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+    <!-- =========================================================
+     QR VIEW MODAL
+     ========================================================= -->
+
+    <div id="qrModal" class="qr-modal">
+
+        <div class="qr-box">
+
+            <button class="qr-close" onclick="closeQR()">
+                ×
+            </button>
+
+            <h2 id="qrRoomTitle">
+                Room QR Code
+            </h2>
+
+            <p id="qrRoomCode"></p>
+
+            <div id="qrcode"></div>
+
+            <button class="qr-print" onclick="printQR()">
+                PRINT QR
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        // ============================================================
+        // BASE URL
+        // ============================================================
+
+        const BASE = window.location.origin;
+
+
+        // ============================================================
+        // HELPERS
+        // ============================================================
+
+        function g(id) {
+            return document
+                .getElementById(id)
+                .value
+                .trim();
+        }
+
+
+        function show(id, msg, ok) {
+
+            const el =
+                document.getElementById(id);
+
+            el.textContent = msg;
+
+            el.className =
+                'status ' +
+                (ok ? 'ok' : 'err');
+
+            setTimeout(() => {
+                el.className = 'status';
+            }, 5000);
+        }
+
+
+        async function post(url, data) {
+
+            const response = await fetch(
+                BASE + url,
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json'
+                    },
+
+                    body: JSON.stringify(data)
+                }
+            );
+
+            return response.json();
+        }
+
+
+        async function get(url) {
+
+            const response =
+                await fetch(BASE + url);
+
+            return response.json();
+        }
+
+
+        // ============================================================
+        // ADD ROOM
+        // ============================================================
+
+        async function addRoom() {
+
+            const d = {
+
+                id: g('rId'),
+
+                name: g('rName'),
+
+                floor: g('rFloor'),
+
+                type: g('rType'),
+
+                description: g('rDesc'),
+
+                x_pos: g('rX'),
+
+                y_pos: g('rY')
+
+            };
+
+
+            // QR CODE IS NOT SENT.
+            //
+            // Backend automatically creates:
+            //
+            // LH109
+            //   ↓
+            // QR_LH109
+
+
+            if (!d.id || !d.name) {
+
+                return show(
+                    'roomMsg',
+                    'Fill in Room ID and Room Name.',
+                    false
+                );
+
+            }
+
+
+            try {
+
+                const r =
+                    await post(
+                        '/admin/add-room',
+                        d
+                    );
+
+
+                show(
+                    'roomMsg',
+                    r.message,
+                    r.success
+                );
+
+
+                if (r.success) {
+
+                    [
+                        'rId',
+                        'rName',
+                        'rDesc'
+                    ].forEach(id => {
+
+                        document
+                            .getElementById(id)
+                            .value = '';
+
+                    });
+
+
+                    document
+                        .getElementById('rFloor')
+                        .value = '1';
+
+
+                    document
+                        .getElementById('rX')
+                        .value = '0';
+
+
+                    document
+                        .getElementById('rY')
+                        .value = '0';
+
+
+                    loadRooms();
+
+                    // Automatically show generated QR
+                    if (
+                        r.room &&
+                        r.room.qr_code
+                    ) {
+
+                        setTimeout(() => {
+
+                            viewQR(
+                                r.room.id,
+                                r.room.qr_code
+                            );
+
+                        }, 300);
+
+                    }
+
+                }
+
+            } catch (e) {
+
+                console.error(e);
+
+                show(
+                    'roomMsg',
+                    'Network error — is server running?',
+                    false
+                );
+
+            }
+
+        }
+
+
+        // ============================================================
+        // QR VIEW
+        // ============================================================
+
+        // ============================================================
+        // DELETE ROOM
+        // ============================================================
+
+        async function delRoom(id) {
+
+            if (
+                !confirm(
+                    'Delete room "' +
+                    id +
+                    '" and ALL its paths?'
+                )
+            ) {
+                return;
+            }
+
+
+            try {
+
+                const response =
+                    await fetch(
+                        BASE +
+                        '/admin/delete-room/' +
+                        encodeURIComponent(id),
+                        {
+                            method: 'DELETE'
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                alert(result.message);
+
+                loadRooms();
+
+                loadPaths();
+
+            } catch (e) {
+
+                alert(
+                    'Failed to delete room.'
+                );
+
+            }
+
+        }
+
+
+        // ============================================================
+        // LOAD ROOMS
+        // ============================================================
+
+        async function loadRooms() {
+
+            try {
+
+                const d =
+                    await get('/admin/rooms');
+
+
+                const rooms =
+                    d.rooms || [];
+
+
+                document
+                    .getElementById('rCount')
+                    .textContent =
+                    rooms.length +
+                    ' rooms';
+
+
+                document
+                    .getElementById('rBody')
+                    .innerHTML =
+
+                    rooms.length === 0
+
+                        ?
+
+                        `
+                    <tr>
+                        <td
+                            colspan="8"
+                            style="
+                                text-align:center;
+                                padding:18px;
+                                color:#546E7A;
+                            "
+                        >
+                            No rooms yet.
+                            Add one on the left.
+                        </td>
+                    </tr>
+                    `
+
+                        :
+
+                        rooms.map(r => `
+
+                        <tr>
+
+                            <td>
+                                <code
+                                    style="
+                                        color:#00BCD4
+                                    "
+                                >
+                                    ${r.id}
+                                </code>
+                            </td>
+
+
+                            <td>
+                                ${r.name}
+                            </td>
+
+
+                            <td>
+                                ${r.floor}
+                            </td>
+
+
+                            <td>
+
+                                <span
+                                    class="
+                                        badge
+                                        ${r.type}
+                                    "
+                                >
+                                    ${r.type}
+                                </span>
+
+                            </td>
+
+
+                            <td>
+
+                                <code
+                                    style="
+                                        color:#90A4AE;
+                                        font-size:10px
+                                    "
+                                >
+                                    ${r.qr_code || 'N/A'}
+                                </code>
+
+                            </td>
+
+
+                            <td>
+                                ${r.x_pos}
+                            </td>
+
+
+                            <td>
+                                ${r.y_pos}
+                            </td>
+
+
+                            <td>
+
+                                <button
+                                    class="qr-view"
+                                    onclick='viewQR(
+                                        ${JSON.stringify(r.id)},
+                                        ${JSON.stringify(r.qr_code)}
+                                    )'
+                                >
+                                    QR View
+                                </button>
+
+
+                                <button
+                                    class="del"
+                                    onclick='delRoom(
+                                        ${JSON.stringify(r.id)}
+                                    )'
+                                >
+                                    Del
+                                </button>
+
+                            </td>
+
+                        </tr>
+
+                    `).join('');
+
+
+                // ----------------------------------------------------
+                // UPDATE ROOM DROPDOWNS
+                // ----------------------------------------------------
+
+                const opts =
+
+                    '<option value="">-- select --</option>' +
+
+                    rooms.map(r => `
+
+                    <option value="${r.id}">
+
+                        ${r.id}
+                        —
+                        ${r.name}
+                        (Fl${r.floor})
+
+                    </option>
+
+                `).join('');
+
+
+                [
+                    'pFrom',
+                    'pTo',
+                    'iNode'
+                ].forEach(id => {
+
+                    document
+                        .getElementById(id)
+                        .innerHTML = opts;
+
+                });
+
+            } catch (e) {
+
+                console.error(e);
+
+                document
+                    .getElementById('rBody')
+                    .innerHTML = `
+
+                    <tr>
+
+                        <td
+                            colspan="8"
+                            style="
+                                color:#EF9A9A;
+                                padding:14px;
+                            "
+                        >
+                            Cannot load —
+                            is server running?
+
+                        </td>
+
+                    </tr>
+
+                `;
+
+            }
+
+        }
+
+
+        // ============================================================
+        // ADD PATH
+        // ============================================================
+
+        async function addPath() {
+
+            const d = {
+
+                from_node: g('pFrom'),
+
+                to_node: g('pTo'),
+
+                distance: g('pDist'),
+
+                direction: g('pDir')
+
+            };
+
+
+            if (
+                !d.from_node ||
+                !d.to_node ||
+                !d.distance ||
+                !d.direction
+            ) {
+
+                return show(
+                    'pathMsg',
+                    'Fill all fields.',
+                    false
+                );
+
+            }
+
+
+            try {
+
+                const r =
+                    await post(
+                        '/admin/add-path',
+                        d
+                    );
+
+
+                show(
+                    'pathMsg',
+                    r.message,
+                    r.success
+                );
+
+
+                if (r.success) {
+
+                    document
+                        .getElementById('pDist')
+                        .value = '';
+
+                    document
+                        .getElementById('pDir')
+                        .value = '';
+
+                    loadPaths();
+
+                }
+
+            } catch (e) {
+
+                show(
+                    'pathMsg',
+                    'Network error.',
+                    false
+                );
+
+            }
+
+        }
+
+
+        // ============================================================
+        // ADD IMAGE
+        // ============================================================
+
+        async function addImage() {
+
+            const d = {
+
+                node_id: g('iNode'),
+
+                image_file: g('iFile'),
+
+                caption: g('iCap')
+
+            };
+
+
+            if (
+                !d.node_id ||
+                !d.image_file
+            ) {
+
+                return show(
+                    'imgMsg',
+                    'Select room and enter filename.',
+                    false
+                );
+
+            }
+
+
+            try {
+
+                const r =
+                    await post(
+                        '/admin/add-image',
+                        d
+                    );
+
+
+                show(
+                    'imgMsg',
+                    r.message,
+                    r.success
+                );
+
+
+                if (r.success) {
+
+                    document
+                        .getElementById('iFile')
+                        .value = '';
+
+                    document
+                        .getElementById('iCap')
+                        .value = '';
+
+                }
+
+            } catch (e) {
+
+                show(
+                    'imgMsg',
+                    'Network error.',
+                    false
+                );
+
+            }
+
+        }
+
+        // ============================================================
+        // SHOW QR CODE
+        // ============================================================
+
+        function viewQR(roomId, qrCode) {
+
+            if (!qrCode) {
+
+                alert(
+                    'QR code not available for this room.'
+                );
+
+                return;
+            }
+
+            // Set room information
+
+            document.getElementById(
+                'qrRoomTitle'
+            ).textContent =
+                'Room ' + roomId;
+
+            document.getElementById(
+                'qrRoomCode'
+            ).textContent =
+                qrCode;
+
+
+            // Clear previous QR
+
+            const qrContainer =
+                document.getElementById('qrcode');
+
+            qrContainer.innerHTML = '';
+
+
+            // Show modal
+
+            document.getElementById(
+                'qrModal'
+            ).classList.add('show');
+
+
+            // Generate QR
+
+            try {
+
+                new QRCode(
+                    qrContainer,
+                    {
+                        text: qrCode,
+
+                        width: 300,
+
+                        height: 300,
+
+                        correctLevel:
+                            QRCode.CorrectLevel.H
+                    }
+                );
+
+            } catch (error) {
+
+                console.error(
+                    'QR generation error:',
+                    error
+                );
+
+                qrContainer.innerHTML = `
+            <p style="
+                color:red;
+                padding:30px;
+            ">
+                Unable to generate QR code.
+            </p>
+        `;
+            }
+        }
+
+
+        // ============================================================
+        // CLOSE QR
+        // ============================================================
+
+        function closeQR() {
+
+            document.getElementById(
+                'qrModal'
+            ).classList.remove('show');
+
+
+            document.getElementById(
+                'qrcode'
+            ).innerHTML = '';
+        }
+
+
+        // ============================================================
+        // PRINT QR
+        // ============================================================
+
+        function printQR() {
+
+            const roomId =
+                document.getElementById(
+                    'qrRoomTitle'
+                ).textContent;
+
+            const qrCode =
+                document.getElementById(
+                    'qrRoomCode'
+                ).textContent;
+
+            const qrImage =
+                document.querySelector(
+                    '#qrcode img'
+                );
+
+
+            if (!qrImage) {
+
+                alert(
+                    'QR code is not ready yet.'
+                );
+
+                return;
+            }
+
+
+            const printWindow =
+                window.open(
+                    '',
+                    '_blank',
+                    'width=500,height=600'
+                );
+
+
+            if (!printWindow) {
+
+                alert(
+                    'Please allow popups to print the QR code.'
+                );
+
+                return;
+            }
+
+
+            printWindow.document.write(`
+        <!DOCTYPE html>
+
+        <html>
+
+        <head>
+
+            <title>
+                ${roomId} QR Code
+            </title>
+
+            <style>
+
+                body {
+                    font-family: Arial;
+                    text-align: center;
+                    padding: 40px;
+                }
+
+                h1 {
+                    margin-bottom: 5px;
+                }
+
+                p {
+                    color: #555;
+                    font-family: monospace;
+                }
+
+                img {
+                    width: 300px;
+                    height: 300px;
+                    margin-top: 20px;
+                }
+
+                @media print {
+                    button {
+                        display: none;
+                    }
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <h1>
+                ${roomId}
+            </h1>
+
+            <p>
+                ${qrCode}
+            </p>
+
+            <img
+                src="${qrImage.src}"
+            >
+
+            <br>
+
+            <button
+                onclick="window.print()"
+            >
+                Print
+            </button>
+
+        </body>
+
+        </html>
+    `);
+
+            printWindow.document.close();
+        }
+
+
+        // ============================================================
+        // LOAD PATHS
+        // ============================================================
+
+        async function loadPaths() {
+
+            try {
+
+                const d =
+                    await get('/admin/paths');
+
+
+                const paths =
+                    d.paths || [];
+
+
+                document
+                    .getElementById('pCount')
+                    .textContent =
+                    paths.length +
+                    ' paths';
+
+
+                document
+                    .getElementById('pBody')
+                    .innerHTML =
+
+                    paths.length === 0
+
+                        ?
+
+                        `
+                    <tr>
+
+                        <td
+                            colspan="4"
+                            style="
+                                text-align:center;
+                                padding:18px;
+                                color:#546E7A;
+                            "
+                        >
+                            No paths yet.
+
+                        </td>
+
+                    </tr>
+                    `
+
+                        :
+
+                        paths.map(p => `
+
+                        <tr>
+
+                            <td>
+                                <code
+                                    style="
+                                        color:#00BCD4
+                                    "
+                                >
+                                    ${p.from_node}
+                                </code>
+                            </td>
+
+
+                            <td>
+                                <code
+                                    style="
+                                        color:#00BCD4
+                                    "
+                                >
+                                    ${p.to_node}
+                                </code>
+                            </td>
+
+
+                            <td>
+                                ${p.distance}m
+                            </td>
+
+
+                            <td
+                                style="
+                                    color:#90A4AE;
+                                    font-size:11px
+                                "
+                            >
+                                ${p.direction}
+                            </td>
+
+                        </tr>
+
+                    `).join('');
+
+            } catch (e) {
+
+                console.error(e);
+
+            }
+
+        }
+
+
+        // ============================================================
+        // TABS
+        // ============================================================
+
+        function showTab(e, name) {
+
+            document
+                .querySelectorAll('.tbc')
+                .forEach(el =>
+                    el.classList.remove('active')
+                );
+
+
+            document
+                .querySelectorAll('.tab')
+                .forEach(el =>
+                    el.classList.remove('active')
+                );
+
+
+            document
+                .getElementById(
+                    't' +
+                    name.charAt(0).toUpperCase() +
+                    name.slice(1)
+                )
+                .classList.add('active');
+
+
+            e.currentTarget
+                .classList.add('active');
+
+
+            if (name === 'paths') {
+                loadPaths();
+            }
+
+        }
+
+
+        // ============================================================
+        // START
+        // ============================================================
+
+        window.onload = () => {
+
+            loadRooms();
+
+            loadPaths();
+
+        };
+
+    </script>
+
+</body>
+
+</html>

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/room.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -22,21 +23,24 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
   Room? _from;
   Room? _to;
 
+  /// Which field the suggestion list is filling. Stays set after keyboard
+  /// dismiss so a tap on a recommendation still lands on the right field.
+  bool _pickingFrom = true;
+
   final _fromCtrl = TextEditingController();
   final _toCtrl = TextEditingController();
   final _fromFocus = FocusNode();
   final _toFocus = FocusNode();
 
-  String _fromQuery = '';
-  String _toQuery = '';
-  bool _fromFocused = false;
-  bool _toFocused = false;
-
   @override
   void initState() {
     super.initState();
-    _fromFocus.addListener(() => setState(() => _fromFocused = _fromFocus.hasFocus));
-    _toFocus.addListener(() => setState(() => _toFocused = _toFocus.hasFocus));
+    _fromFocus.addListener(() {
+      if (_fromFocus.hasFocus) setState(() => _pickingFrom = true);
+    });
+    _toFocus.addListener(() {
+      if (_toFocus.hasFocus) setState(() => _pickingFrom = false);
+    });
     _loadRooms();
   }
 
@@ -70,15 +74,46 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
     }
   }
 
-  List<Room> _matches(String query, Room? exclude) {
-    final q = query.trim().toLowerCase();
+  String get _activeQuery =>
+      (_pickingFrom ? _fromCtrl.text : _toCtrl.text).trim();
+
+  Room? get _exclude => _pickingFrom ? _to : _from;
+
+  List<Room> _matches() {
+    final q = _activeQuery.toLowerCase();
     return _rooms.where((r) {
-      if (exclude != null && r.id == exclude.id) return false;
+      if (_exclude != null && r.id == _exclude!.id) return false;
       if (q.isEmpty) return true;
       return r.name.toLowerCase().contains(q) ||
+          r.id.toLowerCase().contains(q) ||
           r.type.toLowerCase().contains(q) ||
           'floor ${r.floor}'.contains(q);
     }).toList();
+  }
+
+  /// Exact name or id match so typing "LH101" counts without tapping a row.
+  Room? _resolveTyped(String raw, Room? exclude) {
+    final q = raw.trim().toLowerCase();
+    if (q.isEmpty) return null;
+    final hits = _rooms.where((r) {
+      if (exclude != null && r.id == exclude.id) return false;
+      return r.name.toLowerCase() == q || r.id.toLowerCase() == q;
+    }).toList();
+    return hits.length == 1 ? hits.first : null;
+  }
+
+  void _syncFromText(String v) {
+    setState(() {
+      _pickingFrom = true;
+      _from = _resolveTyped(v, _to);
+    });
+  }
+
+  void _syncToText(String v) {
+    setState(() {
+      _pickingFrom = false;
+      _to = _resolveTyped(v, _from);
+    });
   }
 
   IconData _roomIcon(String type) => switch (type) {
@@ -92,33 +127,40 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
       };
 
   void _pickFrom(Room room) {
+    HapticFeedback.selectionClick();
     setState(() {
       _from = room;
-      _fromQuery = room.name;
-      _fromCtrl.text = room.name;
-      _fromCtrl.selection = TextSelection.collapsed(offset: room.name.length);
+      _fromCtrl.value = TextEditingValue(
+        text: room.name,
+        selection: TextSelection.collapsed(offset: room.name.length),
+      );
       if (_to?.id == room.id) {
         _to = null;
-        _toQuery = '';
         _toCtrl.clear();
       }
+      _pickingFrom = false;
     });
     _fromFocus.unfocus();
+    _toFocus.requestFocus();
   }
 
   void _pickTo(Room room) {
+    HapticFeedback.selectionClick();
     setState(() {
       _to = room;
-      _toQuery = room.name;
-      _toCtrl.text = room.name;
-      _toCtrl.selection = TextSelection.collapsed(offset: room.name.length);
+      _toCtrl.value = TextEditingValue(
+        text: room.name,
+        selection: TextSelection.collapsed(offset: room.name.length),
+      );
     });
     _toFocus.unfocus();
   }
 
   Future<void> _findRoute() async {
-    if (_from == null || _to == null) return;
-    if (_from!.id == _to!.id) {
+    final from = _from ?? _resolveTyped(_fromCtrl.text, _to);
+    final to = _to ?? _resolveTyped(_toCtrl.text, _from);
+    if (from == null || to == null) return;
+    if (from.id == to.id) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('Current location and destination must be different.'),
         backgroundColor: AppColors.danger.withValues(alpha: 0.9),
@@ -137,7 +179,7 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
     );
 
     try {
-      final route = await ApiService.findRoute(_from!.id, _to!.id);
+      final route = await ApiService.findRoute(from.id, to.id);
       if (!mounted) return;
       Navigator.pop(context);
       pushFancy(context, RouteScreen(route: route));
@@ -154,9 +196,16 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
     }
   }
 
+  bool get _ready {
+    final from = _from ?? _resolveTyped(_fromCtrl.text, _to);
+    final to = _to ?? _resolveTyped(_toCtrl.text, _from);
+    return from != null && to != null && from.id != to.id;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(title: const Text('SEARCH ROUTE')),
       body: GradientBackdrop(
         child: SafeArea(
@@ -208,14 +257,16 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
           controller: _fromCtrl,
           focusNode: _fromFocus,
           selected: _from,
-          onChanged: (v) => setState(() {
-            _fromQuery = v;
-            if (_from != null && v != _from!.name) _from = null;
-          }),
+          textInputAction: TextInputAction.next,
+          onChanged: _syncFromText,
+          onSubmitted: (_) {
+            _syncFromText(_fromCtrl.text);
+            _toFocus.requestFocus();
+          },
           onClear: () => setState(() {
             _from = null;
-            _fromQuery = '';
             _fromCtrl.clear();
+            _pickingFrom = true;
             _fromFocus.requestFocus();
           }),
         ),
@@ -241,8 +292,6 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
                 setState(() {
                   _from = to;
                   _to = from;
-                  _fromQuery = toText;
-                  _toQuery = fromText;
                   _fromCtrl.text = toText;
                   _toCtrl.text = fromText;
                 });
@@ -266,14 +315,16 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
           controller: _toCtrl,
           focusNode: _toFocus,
           selected: _to,
-          onChanged: (v) => setState(() {
-            _toQuery = v;
-            if (_to != null && v != _to!.name) _to = null;
-          }),
+          textInputAction: TextInputAction.done,
+          onChanged: _syncToText,
+          onSubmitted: (_) {
+            _syncToText(_toCtrl.text);
+            _toFocus.unfocus();
+          },
           onClear: () => setState(() {
             _to = null;
-            _toQuery = '';
             _toCtrl.clear();
+            _pickingFrom = false;
             _toFocus.requestFocus();
           }),
         ),
@@ -288,7 +339,9 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
     required TextEditingController controller,
     required FocusNode focusNode,
     required Room? selected,
+    required TextInputAction textInputAction,
     required ValueChanged<String> onChanged,
+    required ValueChanged<String> onSubmitted,
     required VoidCallback onClear,
   }) {
     final filled = selected != null;
@@ -304,6 +357,8 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
         controller: controller,
         focusNode: focusNode,
         onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        textInputAction: textInputAction,
         style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
         cursorColor: AppColors.mint,
         decoration: InputDecoration(
@@ -339,30 +394,9 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
   }
 
   Widget _buildSuggestions() {
-    final showFrom = _fromFocused;
-    final showTo = _toFocused && !showFrom;
-    final query = showFrom ? _fromQuery : (showTo ? _toQuery : '');
-    final exclude = showFrom ? _to : (showTo ? _from : null);
-    final pickingFrom = showFrom;
+    final matches = _matches();
+    final heading = _pickingFrom ? 'PICK CURRENT LOCATION' : 'PICK DESTINATION';
 
-    if (!showFrom && !showTo) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.search_rounded, color: AppColors.textFaint.withValues(alpha: 0.7), size: 48),
-            const SizedBox(height: 12),
-            const Text(
-              'Tap a field and type a room name,\nor pick from the matching list.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.45),
-            ),
-          ]),
-        ),
-      );
-    }
-
-    final matches = _matches(query, exclude);
     if (matches.isEmpty) {
       return const Center(
         child: Text('No rooms match that search.',
@@ -370,63 +404,44 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      itemCount: matches.length,
-      itemBuilder: (_, i) {
-        final room = matches[i];
-        final selected = pickingFrom ? _from?.id == room.id : _to?.id == room.id;
-        return FadeSlideIn(
-          index: i.clamp(0, 8),
-          child: Pressable(
-            onTap: () => pickingFrom ? _pickFrom(room) : _pickTo(room),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.surfaceAlt : AppColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: selected ? AppColors.mint : AppColors.outline,
-                  width: selected ? 1.6 : 1,
-                ),
-              ),
-              child: Row(children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: selected
-                        ? AppColors.mint.withValues(alpha: 0.18)
-                        : AppColors.surfaceAlt,
-                  ),
-                  child: Icon(_roomIcon(room.type),
-                      color: selected ? AppColors.mint : AppColors.textFaint, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(room.name,
-                        style: TextStyle(
-                          color: selected ? AppColors.mint : Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        )),
-                    Text('Floor ${room.floor}  ·  ${room.type}',
-                        style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-                  ]),
-                ),
-              ]),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+          child: Text(heading,
+              style: const TextStyle(
+                  color: AppColors.textFaint,
+                  fontSize: 11,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700)),
+        ),
+        Expanded(
+          child: ListView.builder(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            itemCount: matches.length,
+            itemBuilder: (_, i) {
+              final room = matches[i];
+              final selected = _pickingFrom
+                  ? _from?.id == room.id
+                  : _to?.id == room.id;
+              return _SuggestionTile(
+                room: room,
+                selected: selected,
+                icon: _roomIcon(room.type),
+                onSelect: () => _pickingFrom ? _pickFrom(room) : _pickTo(room),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 
   Widget _buildFindButton() {
-    final ready = _from != null && _to != null;
+    final ready = _ready;
+    final destName = (_to ?? _resolveTyped(_toCtrl.text, _from))?.name;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
       child: SizedBox(
@@ -435,13 +450,80 @@ class _ManualSearchScreenState extends State<ManualSearchScreen> {
           onPressed: ready ? _findRoute : null,
           icon: const Icon(Icons.navigation_rounded),
           label: Text(ready
-              ? 'NAVIGATE TO ${_to!.name.toUpperCase()}'
+              ? 'NAVIGATE TO ${destName!.toUpperCase()}'
               : 'PICK CURRENT AND DESTINATION'),
           style: ElevatedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
             textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1),
             disabledBackgroundColor: AppColors.surfaceAlt,
             disabledForegroundColor: AppColors.textFaint,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Selects on pointer-down so the keyboard unfocus cannot eat the tap.
+class _SuggestionTile extends StatelessWidget {
+  final Room room;
+  final bool selected;
+  final IconData icon;
+  final VoidCallback onSelect;
+
+  const _SuggestionTile({
+    required this.room,
+    required this.selected,
+    required this.icon,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: selected ? AppColors.surfaceAlt : AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onSelect,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: selected ? AppColors.mint : AppColors.outline,
+                width: selected ? 1.6 : 1,
+              ),
+            ),
+            child: Row(children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: selected
+                      ? AppColors.mint.withValues(alpha: 0.18)
+                      : AppColors.surfaceAlt,
+                ),
+                child: Icon(icon,
+                    color: selected ? AppColors.mint : AppColors.textFaint, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(room.name,
+                      style: TextStyle(
+                        color: selected ? AppColors.mint : Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      )),
+                  Text('Floor ${room.floor}  ·  ${room.type}',
+                      style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
+                ]),
+              ),
+            ]),
           ),
         ),
       ),

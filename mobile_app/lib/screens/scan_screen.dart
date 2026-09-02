@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_widgets.dart';
 import '../utils/transitions.dart';
 import 'destination_screen.dart';
+import 'manual_search_screen.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
@@ -53,7 +54,16 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('INDOOR NAVIGATOR')),
+      appBar: AppBar(
+        title: const Text('INDOOR NAVIGATOR'),
+        actions: [
+          IconButton(
+            tooltip: 'Search rooms',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => pushFancy(context, const ManualSearchScreen()),
+          ),
+        ],
+      ),
       body: GradientBackdrop(
         child: SafeArea(
           child: Column(children: [
@@ -79,6 +89,9 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
       const SizedBox(height: 6),
       const Text('Point camera at the QR sticker on the door',
         style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+      const SizedBox(height: 4),
+      const Text('or tap search to type current and destination',
+        style: TextStyle(color: AppColors.textFaint, fontSize: 12)),
     ]),
   );
 

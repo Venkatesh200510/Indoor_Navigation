@@ -11,6 +11,18 @@ This project contains two main parts:
 
 The system helps users navigate complex indoor spaces such as campuses, offices, hospitals, or large buildings. A user scans a QR code at their current location, selects a destination, and the app calculates the best route using a backend graph of connected rooms and pathways. The app then shows the route and can provide spoken instructions using text-to-speech.
 
+## Project images
+
+### Mobile application
+
+<p align="center">
+  <img src="public/admin_panel.png.png" alt="Indoor Navigation launch screen" width="240">
+  <img src="public/indoor_map.png.png" alt="Indoor Navigation application icon" width="240">
+  <img src="public/route_search.png.png" alt="Pathway image for LH107" width="320">
+</p>
+
+### Indoor pathway examples
+
 ## Features
 
 - QR-code based location detection

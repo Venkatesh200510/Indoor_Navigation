@@ -10,7 +10,9 @@ router.get('/get-pathway-images', (req, res) => {
 
   try {
     const db   = getDB();
-    const BASE = process.env.BASE_URL || 'http://localhost:5000';
+    // Use the address the client used to reach this request. This keeps
+    // pathway images reachable on localhost and over the local network.
+    const BASE = `${req.protocol}://${req.get('host')}`;
 
     const images = nodes.split(',').map(rawId => {
       const id   = rawId.trim();
@@ -31,4 +33,3 @@ router.get('/get-pathway-images', (req, res) => {
 });
 
 module.exports = router;
-

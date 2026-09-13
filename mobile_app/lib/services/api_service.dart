@@ -1,17 +1,30 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/room.dart';
 import '../models/route_result.dart';
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║  STEP 1: run ipconfig (Windows) or ifconfig (Mac)           ║
-// ║  STEP 2: find your IPv4 address, e.g. 192.168.1.100         ║
-// ║  STEP 3: replace the IP below with your actual IP           ║
-// ║  STEP 4: make sure phone and computer are on SAME WiFi      ║
-// ╚══════════════════════════════════════════════════════════════╝
-const String _baseUrl = 'http://10.113.210.25:5000';
+// Web uses the host from the browser URL, so it works on localhost and on
+// other devices without rebuilding the app for every network address.
+const String _mobileBaseUrl = 'http://10.121.205.25:5000';
+
+List<String> get _baseUrls {
+  if (kIsWeb) {
+    final browserHost = Uri.base.host;
+    final browserUrl = Uri(
+      scheme: Uri.base.scheme == 'https' ? 'https' : 'http',
+      host: browserHost.isEmpty ? 'localhost' : browserHost,
+      port: 5000,
+    ).toString().replaceFirst(RegExp(r'/$'), '');
+    const localhostUrl = 'http://localhost:5000';
+    return browserUrl == localhostUrl
+        ? [browserUrl]
+        : [browserUrl, localhostUrl];
+  }
+  return [_mobileBaseUrl, 'http://localhost:5000'];
+}
 
 const _timeout    = Duration(seconds: 15);
 const _maxRetries = 2;
@@ -19,51 +32,56 @@ const _maxRetries = 2;
 class ApiService {
   // ── Low-level GET with retry ───────────────────────────────
   static Future<Map<String, dynamic>> _get(String endpoint) async {
-    for (int attempt = 0; attempt <= _maxRetries; attempt++) {
-      try {
-        final res = await http.get(Uri.parse('$_baseUrl$endpoint')).timeout(_timeout);
-        return _parse(res);
-      } on TimeoutException {
-        if (attempt == _maxRetries) {
-  throw ApiException(
-          'Connection timed out.\n\n'
-          'Checklist:\n'
-          '1. Is the backend running?  (npm run dev)\n'
-          '2. Did you update the IP in api_service.dart?\n'
-          '3. Same WiFi network on phone and computer?\n'
-          '4. Windows Firewall blocking port 5000?',
-        );
+    Object? lastError;
+    for (final baseUrl in _baseUrls) {
+      for (int attempt = 0; attempt <= _maxRetries; attempt++) {
+        try {
+          final res = await http.get(Uri.parse('$baseUrl$endpoint')).timeout(_timeout);
+          return _parse(res);
+        } on TimeoutException catch (e) {
+          lastError = e;
+        } on SocketException catch (e) {
+          lastError = e;
         }
-      } on SocketException catch (e) {
-        if (attempt == _maxRetries) {
-  throw ApiException(
-          'Cannot reach server at $_baseUrl\n${e.message}\n\nCheck the IP address.',
-        );
+        if (attempt < _maxRetries) {
+          await Future.delayed(const Duration(seconds: 1));
         }
       }
-      await Future.delayed(const Duration(seconds: 1));
     }
-    throw ApiException('Unknown network error.');
+    throw ApiException(
+      'Unable to reach the backend at ${_baseUrls.join(' or ')}.\n'
+      'Make sure the server is running with: npm run dev\n'
+      'Last error: $lastError',
+    );
   }
 
   // ── Low-level POST with retry ──────────────────────────────
   static Future<Map<String, dynamic>> _post(String endpoint, Map<String,dynamic> body) async {
-    for (int attempt = 0; attempt <= _maxRetries; attempt++) {
-      try {
-        final res = await http.post(
-          Uri.parse('$_baseUrl$endpoint'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode(body),
-        ).timeout(_timeout);
-        return _parse(res);
-      } on TimeoutException {
-        if (attempt == _maxRetries) throw ApiException('Request timed out. Check server and IP.');
-      } on SocketException catch (e) {
-        if (attempt == _maxRetries) throw ApiException('Cannot connect: ${e.message}');
+    Object? lastError;
+    for (final baseUrl in _baseUrls) {
+      for (int attempt = 0; attempt <= _maxRetries; attempt++) {
+        try {
+          final res = await http.post(
+            Uri.parse('$baseUrl$endpoint'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(body),
+          ).timeout(_timeout);
+          return _parse(res);
+        } on TimeoutException catch (e) {
+          lastError = e;
+        } on SocketException catch (e) {
+          lastError = e;
+        }
+        if (attempt < _maxRetries) {
+          await Future.delayed(const Duration(seconds: 1));
+        }
       }
-      await Future.delayed(const Duration(seconds: 1));
     }
-    throw ApiException('Unknown network error.');
+    throw ApiException(
+      'Unable to reach the backend at ${_baseUrls.join(' or ')}.\n'
+      'Make sure the server is running with: npm run dev\n'
+      'Last error: $lastError',
+    );
   }
 
   static Map<String, dynamic> _parse(http.Response r) {

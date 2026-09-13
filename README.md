@@ -16,9 +16,9 @@ The system helps users navigate complex indoor spaces such as campuses, offices,
 ### Mobile application
 
 <p align="center">
-  <img src="public/admin_panel.png" alt="Indoor Navigation launch screen" width="240">
-  <img src="public/indoor_map.png" alt="Indoor Navigation application icon" width="240">
-  <img src="public/route_search.png" alt="Pathway image for LH107" width="320">
+  <img src="public/admin_panel.png" alt="Indoor Navigation launch screen" width="350" height="200">
+  <img src="public/indoor_map.png" alt="Indoor Navigation application icon" width="350" height="200">
+  <img src="public/route_search.png" alt="Pathway image for LH107" width="200" height="200">
 </p>
 
 ### Indoor pathway examples
